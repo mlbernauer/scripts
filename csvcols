@@ -1,0 +1,41 @@
+#!/usr/bin/env perl
+
+use List::Util max;
+
+my @columns;
+my %colset;
+
+my $n = 0;
+foreach $file (@ARGV) {
+	open(FH,'<',$file);
+	while (<FH>) {
+		chomp;
+		s///g;
+		if($. == 1) {
+			@cols = split /\$/, uc $_;
+			my %cols;
+			map {$cols{$_}++} @cols;
+			$columns[$n] = \%cols;
+			map {$colset{$_}++} @cols;			
+			$n++;
+		} else {
+			last
+		}
+	}
+	close(FH);
+}
+
+my $max_length = max(map {length($_)} keys %colset);
+
+foreach $colname (sort keys %colset) {
+	$padding = " " x ($max_length - length($colname) + 2);
+	print $colname . $padding;
+	foreach $file (0..$#columns) {
+		if($columns[$file]->{$colname}) {
+			print '*';
+		} else {
+			print ' ';
+		}
+	}
+	print "\n";
+}
