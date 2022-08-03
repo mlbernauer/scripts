@@ -1,0 +1,79 @@
+#!/usr/bin/perl -X
+
+#use strict;
+#use warnings;
+use Getopt::Std;
+
+
+my %opts;
+getopts('hm:c:d:D:', \%opts);
+
+my $USAGE = <<EOM;
+usage: csvstac [-h] [-m M] FILE1 [FILE2, FILE3, ..., FILEN]
+
+This tool is used to stack CSV files into single output
+parameters:
+  -m M    mapping string
+  FILE    csv file to stack
+EOM
+
+
+die "$USAGE" if @ARGV < 1;
+
+my $OUTDEL="\t";
+my $INDEL = "\t";
+
+$OUTDEL = $opts{'D'} if exists $opts{'D'};
+$INDEL = $opts{'d'} if exists $opts{'d'};
+
+my %colmap = split(/[:,]/, $opts{'m'}) if defined $opts{'m'};
+
+# get all column names across files
+sub get_all_column_names {
+	my @colnames;
+	foreach $file (@_) {
+		open($FH,'<',$file);
+		$_ = <$FH>;
+		chomp;
+		my @cols = split /$INDEL/;
+		foreach $c (@cols) {
+			if((not $c ~~ @colnames) && (not exists $colmap{$c})) {
+				push @colnames, $c;
+			}
+		}
+	}
+	return @colnames;
+}
+
+my @outcols = get_all_column_names @ARGV;
+map {$outcol_pos{$outcols[$_]} = $_} (0..$#outcols);
+
+print join($OUTDEL,@outcols),"\n";
+foreach $file (@ARGV) {
+	open(my $FH, '<', $file);
+	my %incol_pos;
+	while (<$FH>) {
+		chomp;
+		my @incols = split /$INDEL/;
+		if($. == 1) {
+			map {$incol_pos{$incols[$_]} = $_} (0..$#incols);
+		} else {
+			my @line;
+			map {$line[$_] = undef} (0..$#outcols);
+			foreach my $c (keys %incol_pos) {
+				# if mapped col
+				if((exists $colmap{$c}) && (exists $incols[$incol_pos{$c}])) { 
+					# then store it in the correct position in @line
+					$line[$outcol_pos{$colmap{$c}}] = $incols[$incol_pos{$c}];
+				}
+				# not mapped column and exists in input line
+				elsif ((not exists $colmap{$c}) && (exists $incols[$incol_pos{$c}])) { 
+					# store it in correct spot in line
+					$line[$outcol_pos{$c}] = $incols[$incol_pos{$c}];
+				}
+			}
+			print join($OUTDEL, @line) . "\n";
+		}		
+	}
+	close($FH);
+}
