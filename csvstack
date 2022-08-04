@@ -6,19 +6,22 @@ use Getopt::Std;
 
 
 my %opts;
-getopts('hm:c:d:D:', \%opts);
+getopts('hm:r:d:D:', \%opts);
 
 my $USAGE = <<EOM;
-usage: csvstac [-h] [-m M] FILE1 [FILE2, FILE3, ..., FILEN]
+usage: csvstack [-h] [-d D] [-D D] [-r R] FILE1 [FILE2, FILE3, ..., FILE_N]
 
 This tool is used to stack CSV files into single output
+
 parameters:
-  -m M    mapping string
+  -d D    input delimiter [default: TAB]
+  -D D    output delimiter [default: TAB]
+  -r R    comma separated list indicating which variables should be renamed (e.g. VAR1:VAR2,VAR3:VAR4)
   FILE    csv file to stack
 EOM
 
 
-die "$USAGE" if @ARGV < 1;
+die "$USAGE" if @ARGV == 0;
 
 my $OUTDEL="\t";
 my $INDEL = "\t";
@@ -26,7 +29,7 @@ my $INDEL = "\t";
 $OUTDEL = $opts{'D'} if exists $opts{'D'};
 $INDEL = $opts{'d'} if exists $opts{'d'};
 
-my %colmap = split(/[:,]/, $opts{'m'}) if defined $opts{'m'};
+my %colmap = split(/[:,]/, $opts{'r'}) if defined $opts{'r'};
 
 # get all column names across files
 sub get_all_column_names {
@@ -48,7 +51,7 @@ sub get_all_column_names {
 my @outcols = get_all_column_names @ARGV;
 map {$outcol_pos{$outcols[$_]} = $_} (0..$#outcols);
 
-print join($OUTDEL,@outcols),"\n";
+print join($OUTDEL,@outcols) . "\n";
 foreach $file (@ARGV) {
 	open(my $FH, '<', $file);
 	my %incol_pos;

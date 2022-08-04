@@ -1,18 +1,25 @@
 #!/usr/bin/env perl
 
 use List::Util max;
+use Getopt::Std;
 
+my %opts;
 my @columns;
 my %colset;
+
+getopts('hd:',\%opts);
+
+my $INDEL="\t";
+my $OUTDEL="\t";
+$INDEL = $opts{'d'} if exists $opts{'d'};
 
 my $n = 0;
 foreach $file (@ARGV) {
 	open(FH,'<',$file);
 	while (<FH>) {
 		chomp;
-		s///g;
 		if($. == 1) {
-			@cols = split /\$/, uc $_;
+			@cols = split /[$INDEL]/, $_;
 			my %cols;
 			map {$cols{$_}++} @cols;
 			$columns[$n] = \%cols;
@@ -27,15 +34,9 @@ foreach $file (@ARGV) {
 
 my $max_length = max(map {length($_)} keys %colset);
 
-foreach $colname (sort keys %colset) {
-	$padding = " " x ($max_length - length($colname) + 2);
-	print $colname . $padding;
-	foreach $file (0..$#columns) {
-		if($columns[$file]->{$colname}) {
-			print '*';
-		} else {
-			print ' ';
-		}
-	}
+foreach $name (sort keys %colset) {
+	$pad = " " x ($max_length - length($name) + 1);
+	print $name . $pad;
+	foreach my $f (0..$#columns) { exists $columns[$f]->{$name} ? print 'x' : print '-'}
 	print "\n";
 }

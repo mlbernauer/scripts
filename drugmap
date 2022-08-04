@@ -1,0 +1,59 @@
+#!/usr/bin/env python3
+
+import csv
+import re
+import sys
+import json
+
+def create_map(filename):
+    with open(filename,'r') as infile:
+        reader = csv.reader(infile, delimiter = '|')
+        map = {}
+        for id, item in reader:
+            tokens = set(re.findall("[A-Z0-9.%]+",item))
+            for t in tokens:
+                map.setdefault(t,{})
+                map[t].update({item : {"len": len(tokens), "id": id}})
+    return map
+
+def lookup(query, map):
+    tokens = set(re.findall("[A-Z0-9.%]+",query.upper()))
+    maps_to = {}
+    id_to_item = {}
+    best_dice = 0
+    best_id = None
+    best_item = None
+    for t in tokens:
+        if map.get(t):
+            for k,v in map.get(t).items():
+                maps_to.setdefault(k,{"wt": 0, "len": v["len"]})
+                maps_to[k]["wt"] += 1
+                id_to_item[k] = v["id"]
+    b = len(tokens)
+    for k, v in maps_to.items():
+        a = v["wt"]
+        c = v["len"]
+        dice = 2*(a/(b+c))
+        if dice > best_dice:
+            best_dice = dice
+            best_id = id_to_item[k] 
+            best_item = k 
+    return (best_id, best_item, best_dice)
+
+def main(drug_dict, infile, output_delimiter = '\t'):
+    map = create_map(drug_dict)
+    infile = open(infile,'r').read().split('\n')
+    output = csv.writer(sys.stdout, delimiter=output_delimiter)
+    output.writerow(['query','match','rxnorm','similarity'])
+    for query in infile:
+        best_id, best_item, best_dice = lookup(query, map)
+        output.writerow((query, best_item, best_id, best_dice))
+
+if __name__ == '__main__':
+    import argparse
+    parser = argparse.ArgumentParser(description = "Tool for standardizing drug names")
+    parser.add_argument("INPUT", type = str, help = "File containing drug names. The first column must be an id and the second column the drug name")
+    parser.add_argument("-c", help = "Drug dictionary to use", required = True)
+    parser.add_argument("-D", help = "Output delimiter", required = False, default = '\t')
+    args = parser.parse_args()
+    main(args.c, args.INPUT, output_delimiter = args.D)

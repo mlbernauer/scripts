@@ -1,0 +1,23 @@
+#!/usr/bin/env perl
+use Getopt::Std;
+
+my %opts;
+getopts('hD:',\%opts);
+
+my $usage = <<EOM;
+usage: count [-h] [FILE]
+
+Count items in a file
+
+parameters:
+  -h     show this help message
+  -D     output delimiter [defualt: TAB]
+  FILE   file to count unless <stdin>
+EOM
+
+my $OUTDEL = "\t";
+die $usage if exists $opts{h};
+$OUTDEL = $opts{D} if exists $opts{D};
+die $usage if (@ARGV==0 && -t STDIN);
+
+while(<>){chomp;$a{$_}++}while(my ($k,$v) = each %a){print join($OUTDEL,$v,$k),"\n"}
