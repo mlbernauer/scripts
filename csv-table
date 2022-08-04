@@ -1,0 +1,43 @@
+#!/usr/bin/env perl
+
+use Getopt::Std;
+
+my $usage = <<EOM;
+usage: csv-table [-h] [-d D] [-p P]  [FILE]
+
+Creates table from csv
+
+paramters
+	-h		show this help message
+	-d D	input delimiter [default: TAB]
+	-p P	padding [default 3]
+	FILE	CSV input unless STDIN
+EOM
+
+my %opts;
+my %indel = "\t";
+my $pad = 3;
+
+getopts('hd:p:', \%opts);
+
+die $usage if exists $opts{h};
+$indel = $opts{d} if exists $opts{d};
+$pad = $opts{p} if exists $opts{p};
+
+my @widths;
+my @rows;
+
+while (<>) {
+	chomp;
+	my @cols = split /[$indel]/;
+	map { $widths[$_] = length($cols[$_]) if length($cols[$_]) > $widths[$_]} (0..$#cols);
+	push @rows, \@cols;
+}
+
+foreach my $row (@rows) {
+	foreach my $i (0..$#{$row}) {
+		my $padding = " "x (($widths[$i] - length($$row[$i])) + $pad);
+		print $$row[$i] . $padding; 
+	}
+	print "\n";
+}
