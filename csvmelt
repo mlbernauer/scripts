@@ -1,0 +1,47 @@
+#!/usr/bin/perl
+
+use Getopt::Std;
+
+my $usage = <<EOM;
+usage: csvmelt [-h] [-d D] [-D D] -i I [FILE]
+
+Tools for converting CSV into long format
+
+parameters
+  -h    show this help message
+  -d D  input delimiter [default TAB]
+  -D D  output delimiter [default TAB]
+  -i I  comma separated list of columns to use as index
+EOM
+
+my %opts;
+getopts('hd:D:i:',\%opts);
+
+die $usage if (@ARGV == 0 && -t STDIN);
+die $usage if exists $opts{h};
+
+my $indel  = $opts{d} || "\t";
+my $outdel = $opts{D} || "\t";
+my %index  = map { $_ => 1 } split /,/, $opts{i};
+
+my @colnames;
+my %positions;
+my @row;
+my @index;
+while (<>) {
+	chomp;
+	@cols = split /[$indel]/;
+	if($. == 1) {
+		@colnames = grep ! exists $index{$_}, @cols;
+		@index = keys %index;
+		print join($outdel, @{[@index,'name','value']}),"\n";
+		map { $positions{$cols[$_]} = $_ } (0..$#cols);
+		next;
+	}
+	foreach my $i (@colnames) {
+		@row = @cols[@positions{@index}];
+		push @row, $i;
+		push @row, $cols[$positions{$i}];
+		print join($outdel, @row),"\n";
+	}
+}
