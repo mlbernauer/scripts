@@ -1,0 +1,5 @@
+#!/usr/bin/perl
+use String::Approx qw/amatch/;
+die "fuzzy_search <query> <file>\n" unless @ARGV == 2;
+my $query = shift @ARGV;
+while (<>){ print if amatch(uc $query)}
