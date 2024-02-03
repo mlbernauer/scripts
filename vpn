@@ -1,0 +1,1 @@
+openconnect --passwd-on-stdin -u michaelb https://webvpn.rs21.io <<< jMr3p743@ &

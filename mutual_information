@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+
+read -d '' AWK <<-'EOM'
+BEGIN{FS=INDEL; OFS=ODEL}
+{
+	f[$1]++
+	c[$1][$2]++
+	N++
+}
+END {
+	for(i in c){
+		for(j in c[i]){
+		if(f[i]!=0 && f[j]!=0){
+			mi = log(((N*c[i][j])/(f[i]*f[j])))
+		} else {
+			mi = 0
+		}
+			print i, j, f[i], f[j], f[i]/N, f[j]/N, mi
+		}
+	}
+}
+EOM
+
+function usage() {
+	cat - <<-EOM
+	usage: $(basename $0) [-h] [-d D] [-D D] INFILE
+		
+	This tool calculates the mutal information for a pair of items
+
+	parameters:
+	  -h      Show this message
+	  -d      Input delimiter (default SPACE)
+	  -D      Output delimiter (default SPACE)
+	  INFILE  Bigram pairs
+	EOM
+}
+
+INDEL=" "
+ODEL=" "
+while getopts 'hd:D:' opt; do
+	case "$opt" in
+		h)
+			usage
+			exit 0
+			;;
+		d)
+			INDEL="$OPTARG"
+			;;
+		D)
+			ODEL="$OPTARG"
+			;;
+		*)	exit 1
+	esac
+done
+shift $((OPTIND-1))
+
+if [[ $# != 1 ]]; then
+	echo "Need to provide bigram file"
+	usage
+	exit 1
+fi
+
+awk -v INDEL="$INDEL" -v ODEL="$ODEL" "$AWK" $1

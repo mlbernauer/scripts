@@ -1,0 +1,86 @@
+#!/bin/env bash
+
+INDEL='\t'
+OUTDEL='\t'
+
+function usage() {
+	cat - <<-EOM
+	Usage: $(basename $0) [-h] [-d INDEL] [-D OUTDEL] -i INDEX CSVFILE
+
+	Convert file from wide to long format
+
+	parameters
+	  -h         Return this help message
+	  -d INDEL   Input delimiter (default TAB)
+	  -D OUTDEL  Output delimiter (default TAB)
+	  -i INDEX   Comma separated list of index columns (e.g. 1,2,3)
+	EOM
+}
+
+function main() {
+	read -d '' VAR <<-EOM
+	BEGIN{
+		split(INDEX,index_cols,",")
+	}
+	NR==1{
+		for(i=1;i<=NF;i++){
+			ic[i]=\$i
+			ci[\$i]=i
+		}
+		for(i in index_cols){
+			c++
+			pos[c]=ci[i]
+		}
+	}
+	NR!=1{
+		for(i=1;i<=NF;i++){
+			if(i in pos == 0 && \$ic[i] != "" && \$i != ""){
+				for(j in pos){
+					printf "%s%s", \$j, OFS
+				}
+				printf "%s%s%s\\\n", ic[i], OFS, \$i
+			}
+		}
+	}
+	EOM
+	awk -F "$INDEL" -v OFS="$OUTDEL" -v INDEX="$INDEX" "$VAR" $1
+}
+
+
+while getopts "hd:i:D:" arg; do
+	case "$arg" in
+		h ) usage
+			exit 0
+			;;
+		d )
+			INDEL=${OPTARG}
+			;;
+		D )
+			OUTDEL=${OPTARG}
+			;;
+		i )
+			INDEX=${OPTARG}
+			;;
+		* )
+			exit 1
+			;;
+	esac
+done
+shift $((OPTIND-1))
+
+if [[ $# -eq 0 ]]; then
+	usage
+	exit 1
+fi
+if [[ -z "$INDEX" ]]; then
+	echo "ERROR: Must specify index column"
+	usage
+	exit 1
+fi
+	
+if [[ ! -f $1 ]]; then
+	echo "ERROR: File $1 not found"
+	exit 1
+fi
+
+main $1

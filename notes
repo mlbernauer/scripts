@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+
+function usage () {
+	cat - <<-EOM
+	usage: $(basename $0) [-h] [-d] [NAME]
+
+	Create and delete notes
+
+	parameters:
+	  -h    show this help message
+	  -d    delte note
+	  NAME  name of note you would like to edit
+	EOM
+}
+
+DELETE=0
+while getopts 'hd' opt; do
+	case "$opt" in
+		h) usage
+		   exit 0
+			;;
+		d)  shift $((OPTIND-1))
+			if [[ -f "$NOTES/$1.md" ]]; then
+				rm "$NOTES/$1.md"
+				exit 0
+			fi
+			;;
+		* ) usage
+			exit 1
+			;;
+	esac
+done
+shift $((OPTIND-1))
+
+if [[ $# == 0 ]]; then
+	for i in `ls $NOTES`; do
+		echo $(basename $i .md)
+	done
+	exit 0
+fi
+
+vim $NOTES/$1.md

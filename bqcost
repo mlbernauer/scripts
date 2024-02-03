@@ -1,0 +1,1 @@
+tr -dc '[0-9]' | awk '{printf "This query will scan %.2f TB of data and cost $%.2f\n", $1/1e12, 5*($1/1e12)}'

@@ -1,0 +1,17 @@
+#!/usr/bin/env python3
+import pandas as pd
+import sys
+
+def main(outputfile, input_files):
+    with pd.ExcelWriter(outputfile) as output:
+        for i in input_files:
+            df = pd.read_csv(i)
+            df.to_excel(output, sheet_name = i.replace('.csv',''))
+
+if __name__ == '__main__':
+    try:
+        outfile = sys.argv[-1]
+        infiles = sys.argv[1:-1]
+        main(outfile, infiles)
+    except:
+        print("Usage: csv2excel *.csv output.xlsx")

@@ -1,0 +1,95 @@
+#!/usr/bin/env bash
+
+function usage () {
+	cat - <<-EOM
+	usage: $(basename $0) [-h] [-d DEL] [-D DEL] FILE1 FILE2
+
+	Left join FILE1 and FILE2 using fuzzy matching
+
+	The first column of FILE1 and FILE2 must be an ID. The second column of
+	FILE1 and FILE2 will be used to perform the match. The item in FILE2 with
+	the highest Dice coefficient will be returned as the match.
+
+	parameters:
+	  -h      Show this help message
+	  -d DEL  Delimiter for FILE1 and FILE2 (default TAB)
+	  -D DEL  Output delimiter (default TAB)
+	  FILE1   Left side of join
+	  FILE2   Right side of join
+	EOM
+}
+
+function main () {
+	read -d '' AWK <<-EOM
+		function add_index(id, item, map) {	
+			split(item, tokens, " ")
+			for(t in tokens){
+				map[tokens[t]][id]["n"] = length(tokens)
+				map[tokens[t]][id]["item"] = item
+			}
+		}
+		function map_item(id, item, map) {
+			split(item, tokens, " ")
+			delete ranked_maps_to
+			delete length_maps_to
+			delete maps_to_item
+			best_item = ""
+			best_id = ""
+			best_dice = ""
+			for(i in tokens){
+				token = tokens[i]
+				if(isarray(map[token])){
+					for(maps_to in map[token]){
+						ranked_maps_to[maps_to]++
+						length_maps_to[maps_to] = map[token][maps_to]["n"]
+						maps_to_item[maps_to] = map[token][maps_to]["item"]
+					}
+				} 
+			}
+			length_item = length(tokens)
+			for(i in ranked_maps_to){ dice = 2 * (ranked_maps_to[i]/(length_item + length_maps_to[i]))
+				if(dice > best_dice){
+					best_id = i
+					best_item = maps_to_item[i]
+					best_dice = dice
+				}
+			}
+			print best_dice, id, item, best_id, best_item
+		}
+		filename != FILENAME {filename=FILENAME;file++}
+		file == 1 {
+			add_index(\$1, \$2, map)
+		}
+		file == 2 && FNR == 1{
+			print "relevance", "from_id", "from_name", "to_id", "to_name"
+		}
+		file == 2 {
+			map_item(\$1, \$2, map)
+		}
+	EOM
+	awk -F "$IDEL" -v OFS="|" "$AWK" $1 $2
+}
+
+ODEL='\t'
+IDEL='\t'
+
+while getopts 'hd:D:' opt; do
+	case "$opt" in
+		h) usage
+		   exit 0
+		   ;;
+		d) IDEL="$OPTARG"
+ 		   ;;
+		D) ODEL="$OPTARG"
+		   ;;
+		*) exit 1
+	esac
+done
+shift $((OPTIND-1))
+
+if [[ $# != 2 ]]; then
+	usage
+	exit 1
+fi
+
+main $1 $2

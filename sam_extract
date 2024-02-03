@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+
+source ~/.sam
+
+function usage () {
+	cat - <<-EOM
+	usage: $(basename $0) [-h] MONTH
+	
+	Download SAM Public Entitity data
+
+	parameters:
+	  -h        Show this message
+	  MONTH     Month of file you wish to download (e.g. 2022-06-01)
+	EOM
+}
+
+function main () {
+	date=$(date -d "$1 + $((7 - $(date -d $1 +%w))) days" +%Y%m%d)
+	curl "https://api.sam.gov/data-services/v1/extracts?api_key=${API_KEY}&fileName=SAM_PUBLIC_UTF-8_MONTHLY_V2_${date}.ZIP" \
+		--output "SAM_PUBLIC_MONTHLY_V2_${date}.zip"
+}
+
+while getopts 'h' opt; do
+	case "$opt" in
+		h) usage
+		   exit 0
+		   ;;
+		*) exit 1
+		   ;;
+	esac
+done
+
+if [[ $# != 1 ]]; then
+	usage
+	exit 1
+fi
+
+main $1

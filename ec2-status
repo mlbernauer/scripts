@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+
+function usage () {
+	cat - <<-EOM
+	usage: $(basename $0) [-h]
+
+	List states for all EC2 instances
+
+	parameters
+	  -h    Show this help message
+	EOM
+	exit 0
+}
+
+function main() {
+	aws ec2 describe-instances --output json | \
+		jq -r '.Reservations[].Instances[] | .InstanceId +  " : " + .PublicIpAddress + "\n   " + .State.Name + "\n   " + .Tags[0].Value'
+}
+
+while getopts 'h' opt; do
+	case "$opt" in
+		h) usage
+		   ;;
+		*) exit 1
+		   ;;
+	esac
+done
+
+[[ $# != 0 ]] && usage
+
+main

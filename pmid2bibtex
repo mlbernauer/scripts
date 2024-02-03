@@ -1,0 +1,9 @@
+#!/bin/bash
+# Retrieve BibTeX formatted citation fro PubMed
+#
+# Usage: pmid2bibtex <pmid> 
+
+STYLEPATH=~/.dotfiles/scripts/pubmed2bibtex.xsl
+curl -s "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=${1}&retmode=xml" -o pmid.tmp
+xsltproc $STYLEPATH pmid.tmp
+rm pmid.tmp

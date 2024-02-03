@@ -1,0 +1,39 @@
+#!/usr/bin/env perl
+
+use Getopt::Std;
+
+my $USAGE = <<EOM;
+usage: top_n [-h] [-c C] [-d D] [-n N] FILE
+
+Show the top n records. FILE should be sorted by
+group column prior to using this tool
+
+parameters:
+  -h    show this help message
+  -c    group column [default: 0]
+  -d    delimiter [default: TAB]
+  -n    number of records [default: 5]
+  FILE  input file
+EOM
+
+getopts('hd:n:', \%opts);
+
+my $DEL = '\t';
+my $N = 5;
+my $C = 0;
+
+die $USAGE if $opts{h};
+die $USAGE unless @ARGV == 1;
+
+$DEL = $opts{d} if $opts{d};
+$N = $opts{n} if $opts{n};
+$C = $opts{c} if $opts{c};
+
+while(<>) {
+	my @cols = split(/$DEL/, $_);
+	if ($cols[$C] != $COL) {
+		$COL=$cols[$C];
+		$n = 0;
+	}
+	while ($n < $N) {print $_; $n++;}
+}

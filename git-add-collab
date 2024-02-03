@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+
+function usage() {
+	cat - <<-EOM
+	usage: $(basename $0) [-h] REPO USER
+	
+	Add a collaborator to a repo
+
+	parameters:
+	  REPO    Repository
+	  USER    User
+	EOM
+	exit 1
+}
+
+function  main() {
+	curl -s -X PUT -u $GITHUB_USER:$GITHUB_TOKEN "https://api.github.com/repos/$GITHUB_USER/$1/collaborators/$2" -d '{"permission":"admin"}'
+}
+
+while getopts 'h' opt; do
+	case "$opt" in
+		h) usage
+		   ;;
+		*) exit 1
+		   ;;
+	esac
+done
+shift $((OPIND-1))
+
+[[ $# != 2 ]] && usage
+
+main $1 $2

@@ -1,0 +1,9 @@
+#!/usr/bin/bash
+
+if [ $# -ne 2 ]; then
+	echo "Show contents of sqlite table"
+	echo "Usage: dbshow DB TABLE"
+	exit 1
+fi
+
+sqlite3 -csv -header $1 "select * from $2 limit 10" | csvlook -I

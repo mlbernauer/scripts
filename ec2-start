@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+
+function usage() {
+	cat - <<-EOM
+	usage: $(basename $0) [-h] ID
+
+	Start EC2 instance
+
+	parameters:
+	  -h    Show this help message
+	  ID    Instance ID
+	EOM
+	exit 0
+}
+
+function main() {
+	aws ec2 start-instances --instance-ids $1
+}
+
+while getopts 'h' opt; do
+	case "$opt" in
+		h) usage;;
+		*) exit 1;;
+	esac
+done
+shift $((OPTIND-1))
+
+[[ $# != 1 ]] && usage
+
+main $1

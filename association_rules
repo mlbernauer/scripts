@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+
+export LC_ALL=C
+
+function usage () {
+	cat - <<-EOM
+	usage: $(basename $0) [-h] [-d D] [-D D] INFILE
+
+	Calculate mutual association between two items in INFILE
+
+	parameters:
+	  -h        Show this help message
+	  -d        INFILE delimiter. Default SPACE
+	  -D        Output delimiter. Default SPACE
+	  INFILE    Input file. First column should be ID and the second should be the Item
+	EOM
+}
+
+function main () {
+	sort -t"$INDEL" -k1,1 $1 > $$sorted_words.tmp
+	join -o1.2,2.2 -t"$INDEL" -j1 $$sorted_words.tmp $$sorted_words.tmp | awk '$1 != $2' > $$pairs.tmp
+	cat $$pairs.tmp | awk -F "$INDEL" -v OFS="$INDEL" '{c[$0]++}END{for(i in c){print c[i], i}}' > $$paircounts.tmp
+	cat $$sorted_words.tmp $$paircounts.tmp | \
+		awk -F "$INDEL" -v OFS="$OUTDEL" 'NF==2{f[$2]++}NF==3{print $2, $3, f[$2], f[$3], f[$2]/N, f[$3]/N, log((N*$1)/(f[$2]*f[$3]))}' N="`wc -l $$sorted_words.tmp`"
+	rm *.tmp
+}
+
+INDEL=' '
+OUTDEL=' '
+
+while getopts 'hd:D:' opt; do
+	case $opt in
+		h) usage
+		   exit 0
+		   ;;
+		d) INDEL="$OPTARG"
+		   echo "$INDEL"
+		   ;;
+		D) OUTDEL="$OPTARG"
+		   ;;
+		*) exit 1
+		   ;;
+	esac
+done
+shift $((OPTIND-1))
+
+if [[ $# != 1 ]]; then
+	usage
+	exit 1
+fi
+
+main $1

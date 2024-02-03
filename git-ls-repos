@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+
+function usage() {
+	cat - <<-EOM
+	usage: $(basename $0) [-h]
+
+	List repositories
+
+	paramters:
+	  -h	Show this help message
+	EOM
+	exit 1
+}
+
+function main(){	
+	curl -s -X GET -s -u $GITHUB_USER:$GITHUB_TOKEN "https://api.github.com/user/repos" -d '{"visibility":"all"}' | \
+		jq -r '.[].clone_url' | \
+		grep --color=never $GITHUB_USER
+}
+
+while getopts 'h' opt; do
+	case "$opt" in
+		h) usage
+		   ;;
+		*) exit 1
+		   ;;
+	esac
+done
+
+[[ $# != 0 ]] && usage
+
+main

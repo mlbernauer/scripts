@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# source API key
+source /home/mlbernauer/.mapbox
+
+function usage(){
+	cat <<-EOM
+	usage: $(basename $0) [-h] ADDRESS
+
+	Retrieve latitude/longitude for street address
+
+	Limits: Mapbox API limits queries to 600 per minute
+	
+	parameters:
+	  -h       Show this help message
+	  ADDRESS  The address you would like to geocode e.g. "301 gold ave sw albuquerque nm"
+	EOM
+}
+
+function main () {
+	curl -s "https://api.mapbox.com/geocoding/v5/mapbox.places/$QUERY.json?access_token=$ACCESS_TOKEN" || echo "ERROR: $QUERY"
+}
+
+while getopts 'h' opt; do
+	case "$opt" in
+		h ) usage
+			exit 0
+			;;
+		* ) exit 1
+			;;
+	esac
+done
+
+if [[ $# != 1 ]]; then
+	usage
+	exit 1
+fi
+
+QUERY=$(echo $1 | sed 's/ /%20/g')
+main "$QUERY"

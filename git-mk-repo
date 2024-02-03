@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+
+function usage() {
+	cat - <<-EOM
+	usage: $(basename $0) [-h] FOLDER
+
+	Initialize empty github repo
+
+	parameters
+	  -h        Show this help message
+	  FOLDER    Name of github folder
+	EOM
+	exit 0
+}
+
+function main() {
+	curl -s -X POST -u $GITHUB_USER:$GITHUB_TOKEN https://api.github.com/user/repos -d "{\"name\":\"$1\",\"private\":true}"
+	mkdir $1 && cd $1
+	echo "# $1" > README.md
+	git init
+	git add README.md
+	git commit -m 'initial commit'
+	git branch -M main
+	git remote add origin git@github.com:mbernauer/${1}.git
+	git push -u origin main
+}
+
+while getopts 'h' opt; do
+	case "$opt" in
+		h) usage
+		   ;;
+		*) exit 1
+		   ;;
+	esac
+done
+shift $((OPTIND-1))
+
+[[ $# != 1 ]] && usage
+
+main $1

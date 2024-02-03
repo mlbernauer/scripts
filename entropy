@@ -1,0 +1,20 @@
+#!/usr/bin/env perl
+
+# Shannon Entropy Calculator 
+my %count;
+my $total = 0;
+
+while (<>) {
+	foreach my $char (split(//,$_)) {
+		$count{$char}++;
+		$total++;
+	}
+}
+
+my $H = 0;
+foreach my $char (keys %count) {
+	my $p = $count{$char}/$total;
+	$H += $p * log($p);
+}
+$H = -$H/log(2);
+print "H = $H bits\n";

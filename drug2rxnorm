@@ -1,0 +1,100 @@
+#!/usr/bin/env bash
+function usage () {
+	cat - <<-EOM
+	usage: $(basename $0) [-h] [-t T] [-D D] FILE1
+	
+	Map drug names in FILE1 to RxNorm codes
+
+	parameters:
+	  -h     Show this help message
+	  -t T   Delimiter for FILE1 and FILE2 (default TAB)
+	  -D D   Output delimiter (default TAB)
+	  FILE1  List of drugs you want to map. First column should be and ID
+	EOM
+}
+
+function main () {
+	read -d '' AWK <<-EOM
+		function add_index(id, item, map) {	
+			split(item, tokens, " ")
+			for(t in tokens){
+				map[tokens[t]][id]["n"] = length(tokens)
+				map[tokens[t]][id]["item"] = item
+			}
+		}
+		function map_item(id, item, map) {
+			split(toupper(item), tokens, "[^A-Z0-9.]")
+			a = length(tokens)
+			delete ranked_maps_to
+			delete length_maps_to
+			delete maps_to_item
+			best_item = ""
+			best_id = ""
+			best_dice = ""
+			for(i in tokens){
+				token = tokens[i]
+				if(isarray(map[token])){
+					for(maps_to in map[token]){
+						ranked_maps_to[maps_to]++
+						length_maps_to[maps_to] = map[token][maps_to]["n"]
+						maps_to_item[maps_to] = map[token][maps_to]["item"]
+					}
+				} 
+			}
+			for(i in ranked_maps_to){
+				b = length_maps_to[i]
+				c = ranked_maps_to[i]
+				dice = 2 * (c/(a+b))
+				if(dice > best_dice){
+					best_id = i
+					best_dice = dice
+					best_item = maps_to_item[i]
+				}
+			}
+			print best_dice, id, item, best_id, best_item
+		}
+		BEGIN{FS="|"}
+		filename != FILENAME {filename=FILENAME;file++}
+		file == 1 {		
+			add_index(\$1, \$2, map)
+		}
+		file == 2 && FNR == 1 {
+			print "relevance", "from_id", "from_name", "to_id", "to_name"
+		}
+		file == 2 {
+			split(\$0,flds,IDEL)
+			c1=flds[1]
+			c2=flds[2]
+			map_item(c1, c2, map)
+		}
+	EOM
+	awk -v IDEL="$IDEL" -v OFS="$ODEL" "$AWK" $1 $2
+}
+IDEL="	"
+ODEL="|"
+
+while getopts 'ht:D:' opt; do
+	case "$opt" in
+		h) usage
+		   exit 0
+		   ;;
+		t) IDEL="$OPTARG"
+ 		   ;;
+		D) ODEL="$OPTARG"
+		   ;;
+		*) exit 1
+	esac
+done
+shift $((OPTIND-1))
+
+if [[ $# != 1 ]]; then
+	usage
+	exit 1
+fi
+
+if ! [[ -f "$DRUG_DICT" ]]; then
+	echo "Please set the global DRUG_DICT variable"
+	exit 1
+fi
+
+main "$DRUG_DICT" $1

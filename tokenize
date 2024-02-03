@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+
+function usage () {
+	cat - <<-EOM
+	usage: $(basename $0) [-h] [-l L] [-n N] TXT
+
+	This program returns uni/bi/tri-gram tokens from input TXT file
+
+	parameters:
+	  -h       Show this helpe message
+	  -l L     The min token length to keep (default 1)
+	  -n N     The N-gram which to return (e.g. 1, 2, or 3)
+	  TXT      The input text file to tokenize
+	EOM
+}
+
+function tokens () {
+	tr '[A-Z]' '[a-z]' < $1 | \
+		# remove urls
+		sed -e 's/http[^ ]\+/#/g' \
+			-e 's/&[a-z]\+;/#/g' |\
+		# remove xml and html
+		sed 's/<[^<>]\+>/#/g' |\
+		# remove emails
+		sed 's/[^ ]\+@[^ ]\+/#/g' |\
+		# collapse hyphenated words
+		sed 's/\([a-z]\)-\([a-z]\)/\1\2/g' |\
+		# remove single quotes
+		tr -d "'" |\
+		# split on non-letter # chars
+		tr -sc '[a-z#]' '\n'
+}
+
+function unigrams() {
+	tr -d '#' < $1 | awk '$1'
+}
+
+function remove_short_tokens () {
+	sed "s/^[a-z]\{1,$1\}$/ #/g"
+}
+
+function bigrams () {
+	paste $1 <(tail +2 $1) | \
+	   awk -v OFS="$ODEL" '$1 && $2 && $0 !~ /#/{print $1, $2}' 
+}
+
+function trigrams () {
+	paste $1 <(tail +2 $1) <(tail +3 $1) | \
+	   awk -v OFS="$ODEL" '$1 && $2 && $3 && $0 !~ /#/{print $1, $2, $3}' 
+}
+
+MIN_LENGTH=1
+NGRAM=1
+ODEL=' '
+
+while getopts 'hl:n:D:' opt; do
+	case "$opt" in
+		h) usage
+		   exit 0
+		   ;;
+		l) MIN_LENGTH="$OPTARG"
+		   ;;
+		n) NGRAM="$OPTARG"
+		   if [[ $NGRAM > 3 ]]; then
+			   echo Error: -c must be 1, 2, or 3
+			   exit 1
+		   fi
+		   ;;
+		D) ODEL="$OPTARG"
+		   ;;
+		*) exit 1
+	esac
+done
+shift $((OPTIND-1))
+
+if [[ $# != 1 ]]; then
+	usage
+	exit 1
+fi
+
+tokens $1 | remove_short_tokens $MIN_LENGTH >> $$tokens
+
+[[ $NGRAM = 1 ]] && unigrams $$tokens
+[[ $NGRAM = 2 ]] && bigrams $$tokens
+[[ $NGRAM = 3 ]] && trigrams $$tokens 
+
+rm $$tokens 
